@@ -35,6 +35,12 @@ let rec accumulate (f: char -> bool) (result: char list) (str: char list) : char
     | c::cs when f c -> accumulate f (result@[c]) cs
     | _ -> (result, str)
 
+let (|DigitStart|SymbolStart|IDStart|InvalidStart|) = function
+    | c when Char.IsDigit c -> DigitStart
+    | c when List.contains c (symbols |> keys |> List.map Seq.head) -> SymbolStart
+    | c when List.contains c <| ['_']@['a'..'z']@['A'..'Z'] -> IDStart
+    | _ -> InvalidStart
+
 let rec lex' sl col ln =
     match sl with
     | [] -> []
@@ -42,14 +48,9 @@ let rec lex' sl col ln =
     | (c::cs)::xs ->
         let lexFn = lexMulti c cs xs col ln
         match c with
-        | c when Char.IsDigit c -> lexNum c cs xs col ln
-        
-        | c when List.contains c (symbols |> keys |> List.map Seq.head) -> 
-            lexFn symbols (fun x -> List.contains x (symbols |> keys |> List.reduce (@))) ERROR
-
-        | c when List.contains c <| ['_']@['a'..'z']@['A'..'Z'] ->
-            lexFn keywords (fun x -> List.contains x <| ['_']@['a'..'z']@['A'..'Z']@['0'..'9']) ID
-
+        | DigitStart -> lexNum c cs xs col ln
+        | SymbolStart -> lexFn symbols (fun x -> List.contains x (symbols |> keys |> List.reduce (@))) ERROR
+        | IDStart -> lexFn keywords (fun x -> List.contains x <| ['_']@['a'..'z']@['A'..'Z']@['0'..'9']) ID
         | _ -> lex' (cs::xs) (col+1) ln
 
 and lexNum c cs xs col ln =
@@ -72,6 +73,5 @@ let lex (str: string) : Token list =
 
 [<EntryPoint>]
 let main argv =
-    File.ReadAllText "test.mlang" |> lex 
-                                     |> List.iter (fun t -> (string t).Replace("\n","").Replace("      ","   ") |> printfn "%s")
+    File.ReadAllText "test.mlang" |> lex |> List.iter (fun t -> (string t).Replace("\n","").Replace("      ","  ") |> printfn "%s")
     0
