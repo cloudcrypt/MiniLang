@@ -35,7 +35,8 @@ let rec accumulate (f: char -> bool) (result: char list) (str: char list) : char
     | c::cs when f c -> accumulate f (result@[c]) cs
     | _ -> (result, str)
 
-let (|DigitStart|SymbolStart|IDStart|InvalidStart|) = function
+let inline (|DigitStart|SymbolStart|IDStart|InvalidStart|) c =
+    match c with
     | c when Char.IsDigit c -> DigitStart
     | c when List.contains c (symbols |> keys |> List.map Seq.head) -> SymbolStart
     | c when List.contains c <| ['_']@['a'..'z']@['A'..'Z'] -> IDStart
